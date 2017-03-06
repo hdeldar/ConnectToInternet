@@ -243,3 +243,12 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+
+
+# =========================
+# Qt 
+# =========================
+
+GeneratedFiles/ui_*.h
+GeneratedFiles/qrc_*.cpp
+/QtCrashDumper/GeneratedFiles
