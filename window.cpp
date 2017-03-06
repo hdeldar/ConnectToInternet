@@ -62,14 +62,14 @@
 Window::Window()
 {
     createIconGroupBox();
-    createMessageGroupBox();
+    //createMessageGroupBox();
 
-    iconLabel->setMinimumWidth(durationLabel->sizeHint().width());
+    //iconLabel->setMinimumWidth(durationLabel->sizeHint().width());
 
     createActions();
     createTrayIcon();
 
-    connect(showMessageButton, SIGNAL(clicked()), this, SLOT(showMessage()));
+    //connect(showMessageButton, SIGNAL(clicked()), this, SLOT(showMessage()));
     connect(showIconCheckBox, SIGNAL(toggled(bool)), trayIcon, SLOT(setVisible(bool)));
     connect(iconComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setIcon(int)));
     connect(trayIcon, SIGNAL(messageClicked()), this, SLOT(messageClicked()));
@@ -78,7 +78,7 @@ Window::Window()
 
     QVBoxLayout *mainLayout = new QVBoxLayout;
     mainLayout->addWidget(iconGroupBox);
-    mainLayout->addWidget(messageGroupBox);
+    //mainLayout->addWidget(messageGroupBox);
     setLayout(mainLayout);
 
 	 int cindex = getConnectionState()? 0 : 1;
@@ -88,9 +88,7 @@ Window::Window()
     trayIcon->show();
 
     setWindowTitle(tr("Internet Connection"));
-    resize(400, 300);
-
-	 
+    resize(400, 100);
 }
 //! [0]
 
