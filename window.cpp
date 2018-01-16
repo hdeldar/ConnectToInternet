@@ -1,49 +1,5 @@
-/****************************************************************************
-**
-** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
-** Contact: http://www.qt-project.org/legal
-**
-** This file is part of the examples of the Qt Toolkit.
-**
-** $QT_BEGIN_LICENSE:BSD$
-** You may use this file under the terms of the BSD license as follows:
-**
-** "Redistribution and use in source and binary forms, with or without
-** modification, are permitted provided that the following conditions are
-** met:
-**   * Redistributions of source code must retain the above copyright
-**     notice, this list of conditions and the following disclaimer.
-**   * Redistributions in binary form must reproduce the above copyright
-**     notice, this list of conditions and the following disclaimer in
-**     the documentation and/or other materials provided with the
-**     distribution.
-**   * Neither the name of Digia Plc and its Subsidiary(-ies) nor the names
-**     of its contributors may be used to endorse or promote products derived
-**     from this software without specific prior written permission.
-**
-**
-** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-** "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-** LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-** A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-** OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-** SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-** LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-** DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-** THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-** OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."
-**
-** $QT_END_LICENSE$
-**
-****************************************************************************/
-
 #include "window.h"
-
-#ifndef QT_NO_SYSTEMTRAYICON
-
-#include <QtGui>
-
+#include <qt_windows.h>
 #include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
@@ -58,10 +14,21 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QDebug>
+#include <WinInet.h>
+#include <QCloseEvent>
+#include <QApplication>
+#include <QTimer>
+#include <QTime>
+#include <QSettings>
+#include "ui_window.h"
+#pragma comment(lib, "Wininet.lib")
 //! [0]
-Window::Window()
+Window::Window(QWidget *parent)
+   : QDialog(parent)
+   , m_ui(new Ui::Window)
 {
-    createIconGroupBox();
+   m_ui->setupUi(this);
+    //createIconGroupBox();
     //createMessageGroupBox();
 
     //iconLabel->setMinimumWidth(durationLabel->sizeHint().width());
@@ -70,25 +37,39 @@ Window::Window()
     createTrayIcon();
 
     //connect(showMessageButton, SIGNAL(clicked()), this, SLOT(showMessage()));
-    connect(showIconCheckBox, SIGNAL(toggled(bool)), trayIcon, SLOT(setVisible(bool)));
-    connect(iconComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setIcon(int)));
+    //connect(showIconCheckBox, SIGNAL(toggled(bool)), trayIcon, SLOT(setVisible(bool)));
+    //connect(iconComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(setIcon(int)));
     connect(trayIcon, SIGNAL(messageClicked()), this, SLOT(messageClicked()));
     connect(trayIcon, SIGNAL(activated(QSystemTrayIcon::ActivationReason)),
             this, SLOT(iconActivated(QSystemTrayIcon::ActivationReason)));
 
-    QVBoxLayout *mainLayout = new QVBoxLayout;
-    mainLayout->addWidget(iconGroupBox);
+    //QVBoxLayout *mainLayout = new QVBoxLayout;
+    //mainLayout->addWidget(iconGroupBox);
     //mainLayout->addWidget(messageGroupBox);
-    setLayout(mainLayout);
+    //setLayout(mainLayout);
+    iconList << QIcon(":/images/disconnect1.png") << QIcon(":/images/connect1.png") << QIcon(":/images/connect2.png") ;
 
-	 int cindex = getConnectionState()? 0 : 1;
-	 setIcon(cindex);
-    iconComboBox->setCurrentIndex(cindex);
+	 //int cindex = getConnectionState();
+	 //setIcon(cindex);
+    //iconComboBox->setCurrentIndex(cindex);
 
     trayIcon->show();
 
     setWindowTitle(tr("Internet Connection"));
-    resize(400, 100);
+    //resize(400, 300);
+    timer = new QTimer(this);
+    timer->setInterval(1000);
+    connect(timer, &QTimer::timeout, this, &Window::checkConnectionState);
+    timer->start(1000);
+    //---
+    QSettings settings;
+    m_connectionName = settings.value("connectionName").toString();
+    m_userName = settings.value("userName").toString();
+    m_password = QByteArray::fromBase64(QByteArray::fromBase64(
+       QByteArray::fromBase64(settings.value("password").toString().toUtf8())));
+    m_ui->connectionLineEdit->setText(m_connectionName);
+    m_ui->userLineEdit->setText(m_userName);
+    m_ui->passwordLineEdit->setText(m_password);
 }
 //! [0]
 
@@ -120,11 +101,23 @@ void Window::closeEvent(QCloseEvent *event)
 //! [3]
 void Window::setIcon(int index)
 {
-    QIcon icon = iconComboBox->itemIcon(index);
+   QIcon icon = iconList.at(index);//iconComboBox->itemIcon(index);
     trayIcon->setIcon(icon);
     setWindowIcon(icon);
-
-    trayIcon->setToolTip(iconComboBox->itemText(index));
+    QString str;
+    switch (index)
+    {
+    case 0:
+       str = tr("Disconnect");
+       break;
+    case 1:
+       str = tr("Connect");
+       break;
+    case 2:
+       str = tr("Connected");
+       break;
+    }
+    trayIcon->setToolTip(str);
 }
 //! [3]
 
@@ -135,12 +128,16 @@ void Window::iconActivated(QSystemTrayIcon::ActivationReason reason)
     case QSystemTrayIcon::Trigger:
     case QSystemTrayIcon::DoubleClick:
 	 {
-		iconComboBox->setCurrentIndex((iconComboBox->currentIndex() + 1) % iconComboBox->count());
-		int n = iconComboBox->currentIndex();
-		if (n == 0)
+       timer->stop();
+       QApplication::processEvents();
+		//iconComboBox->setCurrentIndex((iconComboBox->currentIndex() + 1) % iconComboBox->count());
+      //int n = currentState;//iconComboBox->currentIndex();
+		if (currentState == 0)
 			connectToInternet();
 		else
 			disconnectFromInternet();
+
+      timer->start(1000);
 	 }
         break;
     case QSystemTrayIcon::MiddleClick:
@@ -155,20 +152,62 @@ void Window::iconActivated(QSystemTrayIcon::ActivationReason reason)
 //! [5]
 void Window::showMessage()
 {
-    QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::MessageIcon(
-            typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
-    trayIcon->showMessage(titleEdit->text(), bodyEdit->toPlainText(), icon,
-                          durationSpinBox->value() * 1000);
+   QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::MessageIcon(QSystemTrayIcon::Warning);
+            //typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
+    trayIcon->showMessage(tr("Internet Connection Warning"), 
+       tr("Wretched NOOR employee your Internet will be finished \n"
+          "if you do not disconnection it."), icon,
+                          /*durationSpinBox->value()*/10 * 1000);
 }
 //! [5]
 
 //! [6]
 void Window::messageClicked()
 {
-    QMessageBox::information(0, tr("Internet Connection"),
-                             tr("Sorry, I already gave what help I could.\n"
-                                "Maybe you should try asking a human?"));
+    QMessageBox::information(0, tr("Internet Connection Warning"),
+       tr("Wretched NOOR employee your Internet will be finished \n"
+          "if you do not disconnection it."));
 }
+
+void Window::checkConnectionState()
+{
+   setIcon(getConnectionState());
+   if (currentState && messageTime.elapsed() > 10*60000)
+   {
+      showMessage();
+      messageTime.restart();
+   }
+//    QIcon icon = QIcon(":/images/disconnect1.png");
+//    DWORD lpdwFlags = 0;
+//    BOOL b = InternetGetConnectedState(&lpdwFlags, 0);
+//    if (b && (lpdwFlags & INTERNET_RAS_INSTALLED) && 
+//       (lpdwFlags & INTERNET_CONNECTION_CONFIGURED) && 
+//       (lpdwFlags & INTERNET_CONNECTION_MODEM))
+//    {
+//       if(blinkConnection)
+//          icon = QIcon(":/images/connect2.png");
+//       else
+//          icon = QIcon(":/images/connect1.png");
+//       blinkConnection = !blinkConnection;
+//    }
+//    trayIcon->setIcon(icon);
+}
+
+void Window::on_connectionLineEdit_textEdited(const QString &text)
+{
+   m_connectionName = text;
+}
+
+void Window::on_userLineEdit_textEdited(const QString &text)
+{
+   m_userName = text;
+}
+
+void Window::on_passwordLineEdit_textEdited(const QString &text)
+{
+   m_password = text;
+}
+
 //! [6]
 
 void Window::createIconGroupBox()
@@ -180,7 +219,7 @@ void Window::createIconGroupBox()
     iconComboBox = new QComboBox;
     iconComboBox->addItem(QIcon(":/images/connect1.png"), tr("Connect"));
     iconComboBox->addItem(QIcon(":/images/disconnect1.png"), tr("Disconnect"));
-    //iconComboBox->addItem(QIcon(":/images/trash.png"), tr("Trash"));
+    //iconComboBox->addItem(QIcon(":/images/connect2.png"), tr("Connected"));
 
     showIconCheckBox = new QCheckBox(tr("Show icon"));
     showIconCheckBox->setChecked(true);
@@ -271,7 +310,7 @@ void Window::createTrayIcon()
 {
     trayIconMenu = new QMenu(this);
     trayIconMenu->addAction(minimizeAction);
-    trayIconMenu->addAction(maximizeAction);
+    //trayIconMenu->addAction(maximizeAction);
     trayIconMenu->addAction(restoreAction);
     trayIconMenu->addSeparator();
     trayIconMenu->addAction(quitAction);
@@ -281,35 +320,48 @@ void Window::createTrayIcon()
 }
 
 
-bool Window::getConnectionState()
+int Window::getConnectionState()
 {
 	QProcess process;
 	//process.start("cmd", QStringList() << "/c" << "dir");
 	process.start("rasdial", QStringList());
 	process.waitForFinished();
 	QString strOut = process.readAllStandardOutput();
-	qDebug() << strOut;
+	//qDebug() << strOut;
 	if (strOut.contains("No connections"))
-		return false;
-	else
-		return true;
+		return 0;
+   blinkConnection = !blinkConnection;
+   if (blinkConnection)
+      return 1;
+   return 2;
 }
 
 void Window::connectToInternet()
 {
+   currentState = 1;
+   messageTime.restart();
+   QSettings settings;
+   settings.setValue("connectionName", m_connectionName);
+   settings.setValue("userName", m_userName);
+   settings.setValue("password", m_password.toUtf8().toBase64().toBase64().toBase64());
 	QProcess process;
-	process.start("rasdial", QStringList() << "aaa" << "hdeldar" << "pass");
+	process.start("rasdial", QStringList() << m_connectionName << m_userName << m_password);
 	process.waitForFinished();
+   checkConnectionState();
 	QString strOut = process.readAllStandardOutput();
-	qDebug() << strOut;
+	//qDebug() << strOut;
+   //QTimer::singleShot(1000, this, &Window::chekConnectionState);
 }
 
 void Window::disconnectFromInternet()
 {
+   currentState = 0;
+   //timer->stop();
 	QProcess process;
 	process.start("rasdial", QStringList() << "/DISCONNECT");
 	process.waitForFinished();
-	qDebug() << process.readAllStandardOutput();
+   checkConnectionState();
+	//qDebug() << process.readAllStandardOutput();
 }
 
-#endif
+
