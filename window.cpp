@@ -156,7 +156,7 @@ void Window::showMessage()
             //typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
     trayIcon->showMessage(tr("Internet Connection Warning"), 
        tr("Wretched NOOR employee your Internet will be finished \n"
-          "if you do not disconnection it."), icon,
+          "if you do not disconnect it."), icon,
                           /*durationSpinBox->value()*/10 * 1000);
 }
 //! [5]
