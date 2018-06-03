@@ -50,6 +50,9 @@
       <Extensions>ui</Extensions>
       <ParseFiles>true</ParseFiles>
     </Filter>
+    <Filter Include="installer">
+      <UniqueIdentifier>{e2e8d246-39b6-4133-9897-9bc09d373e23}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -89,6 +92,9 @@
     <None Include="images\trash.png">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Installer\ConnectToInternet.nsi">
+      <Filter>installer</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="images\connect.png">
@@ -106,10 +112,18 @@
     <Image Include="images\connect2.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="images\connect1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneratedFiles\ui_window.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ConnectToInternet.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

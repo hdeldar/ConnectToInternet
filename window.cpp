@@ -155,8 +155,7 @@ void Window::showMessage()
    QSystemTrayIcon::MessageIcon icon = QSystemTrayIcon::MessageIcon(QSystemTrayIcon::Warning);
             //typeComboBox->itemData(typeComboBox->currentIndex()).toInt());
     trayIcon->showMessage(tr("Internet Connection Warning"), 
-       tr("Wretched NOOR employee your Internet will be finished \n"
-          "if you do not disconnection it."), icon,
+       tr("Your Internet connection is opened for long time. If your connection has daily limitation and you have forgot to disconnect, you can do now!"), icon,
                           /*durationSpinBox->value()*/10 * 1000);
 }
 //! [5]
@@ -165,8 +164,7 @@ void Window::showMessage()
 void Window::messageClicked()
 {
     QMessageBox::information(0, tr("Internet Connection Warning"),
-       tr("Wretched NOOR employee your Internet will be finished \n"
-          "if you do not disconnection it."));
+       tr(R"(Your Internet connection is opened for long time. If your connection has daily limitation and you have forgot to disconnect, you can do now!)"));
 }
 
 void Window::checkConnectionState()
