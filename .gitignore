@@ -252,3 +252,4 @@ ModelManifest.xml
 GeneratedFiles/ui_*.h
 GeneratedFiles/qrc_*.cpp
 /QtCrashDumper/GeneratedFiles
+/systray.vcxproj.user
